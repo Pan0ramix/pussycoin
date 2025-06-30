@@ -10,11 +10,64 @@
 #include <primitives/block.h>
 #include <uint256.h>
 
+unsigned int GetNextWorkRequiredLWMA3(const CBlockIndex* pindexLast, const Consensus::Params& params)
+{
+    const int64_t T = params.nPowTargetSpacing;
+    const int64_t N = params.DifficultyAdjustmentInterval();
+    const int64_t k = N * (N + 1) * T / 2;
+    const int64_t height = pindexLast->nHeight;
+    const arith_uint256 powLimit = UintToArith256(params.powLimit);
+
+    if (height < N) {
+        return powLimit.GetCompact();
+    }
+
+    int64_t sumWeightedSolvetimes = 0;
+    int64_t sumWeights = 0;
+    int64_t j = 0;
+
+    const CBlockIndex* blockPreviousTimestamp = pindexLast;
+    const CBlockIndex* blockCurrentTimestamp = pindexLast;
+
+    // Loop through N most recent blocks
+    for (int64_t i = height; i > height - N; i--) {
+        // Prevent solvetimes from being negative in a safe way. It must be done like this.
+        // Do not attempt anything like  if (solvetime < 1) {solvetime=1;}
+        // The +1 ensures new coins do not calculate nextDifficulty = 0.
+        int64_t solvetime = std::max<int64_t>(blockCurrentTimestamp->GetBlockTime() - 
+                                              blockPreviousTimestamp->GetBlockTime(), 1);
+
+        j++;
+        sumWeightedSolvetimes += solvetime * j;
+        sumWeights += j;
+
+        blockPreviousTimestamp = blockCurrentTimestamp;
+        blockCurrentTimestamp = blockCurrentTimestamp->pprev;
+    }
+
+    arith_uint256 nextTarget;
+    nextTarget.SetCompact(pindexLast->nBits);
+    nextTarget *= sumWeightedSolvetimes * k;
+    nextTarget /= (sumWeights * T * T);
+
+    if (nextTarget > powLimit) {
+        nextTarget = powLimit;
+    }
+
+    return nextTarget.GetCompact();
+}
+
 unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader *pblock, const Consensus::Params& params)
 {
     assert(pindexLast != nullptr);
     unsigned int nProofOfWorkLimit = UintToArith256(params.powLimit).GetCompact();
 
+    // Use LWMA-3 for Pussycoin
+    if (params.nPowTargetSpacing == 10) { // 10-second blocks = Pussycoin
+        return GetNextWorkRequiredLWMA3(pindexLast, params);
+    }
+
+    // Legacy Litecoin difficulty adjustment (kept for compatibility)
     // Only change once per difficulty adjustment interval
     if ((pindexLast->nHeight+1) % params.DifficultyAdjustmentInterval() != 0)
     {

@@ -10,6 +10,7 @@
 #include <chainparams.h>
 #include <checkqueue.h>
 #include <consensus/consensus.h>
+#include <consensus/emission.h>
 #include <consensus/merkle.h>
 #include <consensus/tx_check.h>
 #include <consensus/tx_verify.h>
@@ -1265,6 +1266,17 @@ bool ReadRawBlockFromDisk(std::vector<uint8_t>& block, const CBlockIndex* pindex
 
 CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams)
 {
+    // Use smooth emission for Pussycoin (10-second blocks)
+    if (consensusParams.nPowTargetSpacing == 10) {
+        // Calculate total supply generated so far
+        uint64_t already_generated = 0;
+        for (int h = 1; h < nHeight; h++) {
+            already_generated += GetSmoothEmissionReward(already_generated);
+        }
+        return GetSmoothEmissionReward(already_generated);
+    }
+
+    // Legacy Litecoin halving for compatibility
     int halvings = nHeight / consensusParams.nSubsidyHalvingInterval;
     // Force block reward to zero when right shift is undefined.
     if (halvings >= 64)
