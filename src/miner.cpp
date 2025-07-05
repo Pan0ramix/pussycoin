@@ -159,7 +159,29 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     addPackageTxs(nPackagesSelected, nDescendantsUpdated);
 
     if (fIncludeMWEB) {
-        mweb_miner.AddHogExTransaction(pindexPrev, pblock, pblocktemplate.get(), nFees);
+        // Check if we need to create a HogEx transaction
+        // This is needed in two cases:
+        // 1. There are new MWEB transactions (nBlockMWEBWeight > 0)
+        // 2. There was a previous HogEx transaction that needs to be continued
+        bool needsHogEx = (nBlockMWEBWeight > 0);
+        
+        LogPrintf("MWEB Debug: nBlockMWEBWeight = %u, nBlockTx = %u\n", nBlockMWEBWeight, nBlockTx);
+        
+        // Check if previous block had a HogEx transaction
+        if (!needsHogEx && pindexPrev && pindexPrev->nHeight > 0) {
+            CBlock prevBlock;
+            if (ReadBlockFromDisk(prevBlock, pindexPrev, chainparams.GetConsensus())) {
+                // If previous block had a HogEx transaction, we need to continue the chain
+                needsHogEx = (!prevBlock.vtx.empty() && prevBlock.vtx.back()->IsHogEx());
+                LogPrintf("MWEB Debug: Previous block had HogEx = %s\n", needsHogEx ? "true" : "false");
+            }
+        }
+        
+        LogPrintf("MWEB Debug: needsHogEx = %s\n", needsHogEx ? "true" : "false");
+        
+        if (needsHogEx) {
+            mweb_miner.AddHogExTransaction(pindexPrev, pblock, pblocktemplate.get(), nFees);
+        }
     }
 
     int64_t nTime1 = GetTimeMicros();
@@ -178,9 +200,33 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     coinbaseTx.vin[0].scriptSig = CScript() << nHeight << OP_0;
     pblock->vtx[0] = MakeTransactionRef(std::move(coinbaseTx));
     pblocktemplate->vchCoinbaseCommitment = GenerateCoinbaseCommitment(*pblock, pindexPrev, chainparams.GetConsensus());
+    
+    // CRITICAL: Ensure coinbase transaction never has MWEB data after GenerateCoinbaseCommitment
+    {
+        CMutableTransaction fixed_coinbase(*pblock->vtx[0]);
+        fixed_coinbase.mweb_tx.SetNull();
+        fixed_coinbase.m_hogEx = false;
+        pblock->vtx[0] = MakeTransactionRef(std::move(fixed_coinbase));
+    }
+    
     pblocktemplate->vTxFees[0] = -nFees;
 
     LogPrintf("CreateNewBlock(): block weight: %u txs: %u fees: %ld sigops: %d MWEB weight: %u\n", GetBlockWeight(*pblock), nBlockTx, nFees, nBlockSigOpsCost, nBlockMWEBWeight);
+
+    // MWEB Debug: Check what transactions are in the block
+    LogPrintf("MWEB Debug: Block has %u transactions:\n", pblock->vtx.size());
+    for (size_t i = 0; i < pblock->vtx.size(); i++) {
+        const CTransactionRef& pTx = pblock->vtx[i];
+        LogPrintf("MWEB Debug: Tx %u: %s, HasMWEBTx=%s, IsHogEx=%s\n", 
+                  i, pTx->GetHash().ToString(), pTx->HasMWEBTx() ? "true" : "false", pTx->IsHogEx() ? "true" : "false");
+        
+        // Check for pegin outputs
+        for (size_t j = 0; j < pTx->vout.size(); j++) {
+            if (pTx->vout[j].scriptPubKey.IsMWEBPegin()) {
+                LogPrintf("MWEB Debug: Tx %u output %u is a pegin output\n", i, j);
+            }
+        }
+    }
 
     // Fill in header
     pblock->hashPrevBlock  = pindexPrev->GetBlockHash();
@@ -249,7 +295,13 @@ bool BlockAssembler::TestPackageTransactions(const CTxMemPool::setEntries& packa
 bool BlockAssembler::AddToBlock(CTxMemPool::txiter iter)
 {
     if (iter->GetTx().HasMWEBTx() && !mweb_miner.AddMWEBTransaction(iter)) {
+        LogPrintf("MWEB Debug: Failed to add MWEB transaction %s\n", iter->GetTx().GetHash().ToString());
         return false;
+    }
+    
+    if (iter->GetTx().HasMWEBTx()) {
+        LogPrintf("MWEB Debug: Successfully added MWEB transaction %s, MWEB weight = %u\n", 
+                  iter->GetTx().GetHash().ToString(), iter->GetMWEBWeight());
     }
 
     CTransactionRef pTx = iter->GetSharedTx();

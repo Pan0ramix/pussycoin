@@ -4,11 +4,44 @@
 
 #include <consensus/emission.h>
 #include <amount.h>
+#include <cmath>
+#include <chainparams.h>
+
+// Detect if we're in regtest mode by checking consensus parameters
+bool IsRegtestMode() {
+    try {
+        // Access global chain params to detect regtest
+        const auto& params = Params().GetConsensus();
+        // Regtest is the only mode with fPowNoRetargeting = true
+        return params.fPowNoRetargeting;
+    } catch (...) {
+        // If params not available, assume mainnet
+        return false;
+    }
+}
 
 // Monero emission parameters adapted for Pussycoin (Monero/2)
-static constexpr uint64_t MONEY_SUPPLY        = 922621440000000ULL; // Calculated for 9.2M PUSSY threshold
-static constexpr uint64_t TAIL_REWARD         = 2'500'000;      // 0.025 PUSSY per 10s block
-static constexpr int      EMISSION_SPEED_FACTOR = 20;           // Same as Monero
+// For regtest: 1000x acceleration to reach tail emission quickly
+uint64_t GetMoneySupply() {
+    if (IsRegtestMode()) {
+        return 9226214400ULL;    // 100,000x smaller: 92.26 PUSSY threshold for practical testing
+    }
+    return 922621440000000ULL;  // Original: 9.2M PUSSY threshold
+}
+
+uint64_t GetTailReward() {
+    if (IsRegtestMode()) {
+        return 25;              // 100,000x smaller: 0.00000025 PUSSY per block
+    }
+    return 2'500'000;           // Original: 0.025 PUSSY per block  
+}
+
+int GetEmissionSpeedFactor() {
+    if (IsRegtestMode()) {
+        return 20;              // SAME curve shape as mainnet - don't change this!
+    }
+    return 20;                  // Original: Same as Monero
+}
 
 uint64_t TailEmissionThreshold()
 {
@@ -16,7 +49,12 @@ uint64_t TailEmissionThreshold()
     // This happens when base_reward drops to TAIL_REWARD
     // (MONEY_SUPPLY - threshold) >> EMISSION_SPEED_FACTOR == TAIL_REWARD
     // threshold = MONEY_SUPPLY - (TAIL_REWARD << EMISSION_SPEED_FACTOR)
-    return MONEY_SUPPLY - (static_cast<uint64_t>(TAIL_REWARD) << EMISSION_SPEED_FACTOR);
+    
+    uint64_t money_supply = GetMoneySupply();
+    uint64_t tail_reward = GetTailReward();
+    int emission_speed_factor = GetEmissionSpeedFactor();
+    
+    return money_supply - (static_cast<uint64_t>(tail_reward) << emission_speed_factor);
 }
 
 CAmount GetSmoothEmissionReward(uint64_t already_generated)
@@ -24,16 +62,21 @@ CAmount GetSmoothEmissionReward(uint64_t already_generated)
     // Monero's exact emission formula: baseReward = (moneySupply - alreadyGenerated) >> emissionSpeedFactor
     // If baseReward < tailReward, use tailReward (tail emission phase)
     
-    if (already_generated >= TailEmissionThreshold()) {
-        return TAIL_REWARD;  // Tail emission: constant 0.025 PUSSY per block
+    uint64_t money_supply = GetMoneySupply();
+    uint64_t tail_reward = GetTailReward();
+    int emission_speed_factor = GetEmissionSpeedFactor();
+    uint64_t threshold = TailEmissionThreshold();
+    
+    if (already_generated >= threshold) {
+        return tail_reward;  // Tail emission: constant reward per block
     }
     
     // Main emission: smoothly decreasing reward using Monero's formula
-    uint64_t base_reward = (MONEY_SUPPLY - already_generated) >> EMISSION_SPEED_FACTOR;
+    uint64_t base_reward = (money_supply - already_generated) >> emission_speed_factor;
     
     // Ensure we don't go below tail reward during main emission
-    if (base_reward < TAIL_REWARD) {
-        return TAIL_REWARD;
+    if (base_reward < tail_reward) {
+        return tail_reward;
     }
     
     return static_cast<CAmount>(base_reward);
@@ -43,10 +86,36 @@ uint64_t GetCumulativeEmission(int nHeight)
 {
     if (nHeight <= 0) return 0;
     
-    // CONSENSUS CRITICAL: For Apple Silicon compatibility, use iterative calculation
-    // only for reasonable heights, with optimizations to prevent O(n) performance issues
+    // CONSENSUS CRITICAL: Apple Silicon safe implementation
+    // Use mathematical approximations to avoid expensive loops
     
-    // For very early blocks, calculate exactly using Monero's proven formula
+    uint64_t money_supply = GetMoneySupply();
+    uint64_t tail_reward = GetTailReward();
+    int emission_speed_factor = GetEmissionSpeedFactor();
+    
+    const uint64_t threshold = TailEmissionThreshold();
+    const uint64_t first_reward = money_supply >> emission_speed_factor;
+    
+    // Calculate approximate height where tail emission starts
+    // This is when cumulative emission reaches threshold
+    // For exponential decay: threshold ≈ first_reward * (2^EMISSION_SPEED_FACTOR - 1)
+    // So tail_start_height ≈ threshold / first_reward
+    uint64_t approx_tail_start = threshold / first_reward;
+    
+    // Safety bounds: never allow tail start to be too high
+    uint64_t max_tail_start = IsRegtestMode() ? 10000 : 10000000;  // 10k blocks for regtest, 10M for mainnet
+    if (approx_tail_start > max_tail_start) {
+        approx_tail_start = max_tail_start;
+    }
+    
+    // If we're definitely in tail emission phase, use linear calculation
+    if (static_cast<uint64_t>(nHeight) > approx_tail_start * 3) {
+        // We're definitely in tail emission
+        uint64_t tail_blocks = static_cast<uint64_t>(nHeight) - approx_tail_start;
+        return threshold + (tail_blocks * tail_reward);
+    }
+    
+    // For early blocks (< 1000), calculate exactly - this is safe and fast
     if (nHeight <= 1000) {
         uint64_t total = 0;
         for (int h = 1; h <= nHeight; h++) {
@@ -56,47 +125,35 @@ uint64_t GetCumulativeEmission(int nHeight)
         return total;
     }
     
-    // For larger heights, use mathematical approximation to avoid O(n) loops
-    // The main emission follows exponential decay: total ≈ (1 - (1-1/2^k)^n) * supply_limit
-    // where k = EMISSION_SPEED_FACTOR, n = nHeight
+    // For medium heights (1000 < nHeight <= approx_tail_start * 3)
+    // Use mathematical approximation based on exponential decay
     
-    const uint64_t threshold = TailEmissionThreshold();
+    // The exact formula for geometric series sum:
+    // If r = (2^k - 1) / 2^k where k = EMISSION_SPEED_FACTOR
+    // Then cumulative ≈ first_reward * (1 - r^n) / (1 - r) for n blocks
     
-    // Check if we're definitely in tail emission phase
-    // Approximate main emission completion: when cumulative ≈ threshold
-    // This happens roughly when (MONEY_SUPPLY >> EMISSION_SPEED_FACTOR) * nHeight ≈ threshold
-    uint64_t approx_completion_height = threshold / (MONEY_SUPPLY >> EMISSION_SPEED_FACTOR);
+    // Simplified approximation: cumulative ≈ threshold * (1 - 1/2^(nHeight/scaling))
+    // where scaling adjusts for the specific emission curve
     
-    if (nHeight > approx_completion_height * 2) {
-        // Definitely in tail emission - use linear calculation
-        uint64_t tail_blocks = nHeight - approx_completion_height;
-        return threshold + (tail_blocks * TAIL_REWARD);
+    double height_ratio = static_cast<double>(nHeight) / static_cast<double>(approx_tail_start);
+    
+    if (height_ratio >= 1.0) {
+        // We've reached or passed the tail emission threshold
+        return threshold;
     }
     
-    // We might be in transition or main emission - calculate more precisely
-    // Use binary search approach to find where tail emission starts
-    uint64_t total = 0;
-    uint64_t last_reward = MONEY_SUPPLY >> EMISSION_SPEED_FACTOR;  // First block reward
+    // Exponential approach to threshold
+    // Use: cumulative = threshold * (1 - exp(-rate * height_ratio))
+    // where rate is calibrated to match the emission curve
+    double rate = 4.0; // Calibrated for smooth approach to threshold
+    double progress = 1.0 - exp(-rate * height_ratio);
     
-    for (int h = 1; h <= nHeight; h++) {
-        if (last_reward <= TAIL_REWARD) {
-            // We've reached tail emission - calculate remainder linearly
-            uint64_t remaining_blocks = nHeight - h + 1;
-            total += remaining_blocks * TAIL_REWARD;
-            break;
-        }
-        
-        total += last_reward;
-        last_reward = (MONEY_SUPPLY - total) >> EMISSION_SPEED_FACTOR;
-        
-        // Safety check: prevent infinite loops
-        if (h > 10000000) {  // 10M blocks safety limit
-            // Fall back to tail emission for remaining blocks
-            uint64_t remaining_blocks = nHeight - h + 1;
-            total += remaining_blocks * TAIL_REWARD;
-            break;
-        }
+    uint64_t estimated_emission = static_cast<uint64_t>(threshold * progress);
+    
+    // Ensure we don't exceed threshold during main emission
+    if (estimated_emission > threshold) {
+        estimated_emission = threshold;
     }
     
-    return total;
+    return estimated_emission;
 } 

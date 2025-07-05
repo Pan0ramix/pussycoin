@@ -9,6 +9,7 @@
 #include <chain.h>
 #include <primitives/block.h>
 #include <uint256.h>
+#include <logging.h>
 
 unsigned int GetNextWorkRequiredLWMA3(const CBlockIndex* pindexLast, const Consensus::Params& params)
 {
@@ -17,6 +18,12 @@ unsigned int GetNextWorkRequiredLWMA3(const CBlockIndex* pindexLast, const Conse
     const int64_t k = N * (N + 1) * T / 2;
     const int64_t height = pindexLast->nHeight;
     const arith_uint256 powLimit = UintToArith256(params.powLimit);
+
+    // Regtest: don't retarget if fPowNoRetargeting is set - use easiest difficulty
+    if (params.fPowNoRetargeting) {
+        LogPrintf("LWMA3: fPowNoRetargeting=true, height=%d, returning powLimit difficulty %08x\n", height+1, powLimit.GetCompact());
+        return powLimit.GetCompact();
+    }
 
     if (height < N) {
         return powLimit.GetCompact();

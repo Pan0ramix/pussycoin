@@ -38,7 +38,36 @@ bool Node::ContextualCheckBlock(const CBlock& block, const Consensus::Params& co
 
         return true;
     } else if (block.mweb_block.IsNull()) {
-        return state.Invalid(BlockValidationResult::BLOCK_MUTATED, "mweb-missing", "MWEB activated but extension block not found");
+        // Allow empty MWEB blocks when there's no MWEB activity (following Litecoin approach)
+        // Check if there's actually any MWEB activity that would require an extension block
+        bool has_mweb_activity = false;
+        
+        // Check for HogEx transaction (indicates MWEB activity)
+        if (!block.vtx.empty() && block.vtx.back()->IsHogEx()) {
+            has_mweb_activity = true;
+        }
+        
+        // Check for MWEB pegin outputs (indicates MWEB activity)
+        if (!has_mweb_activity) {
+            for (const auto& tx : block.vtx) {
+                if (tx->IsCoinBase()) continue; // Skip coinbase
+                for (const CTxOut& out : tx->vout) {
+                    if (out.scriptPubKey.IsMWEBPegin()) {
+                        has_mweb_activity = true;
+                        break;
+                    }
+                }
+                if (has_mweb_activity) break;
+            }
+        }
+        
+        // Only require MWEB data if there's actual MWEB activity
+        if (has_mweb_activity) {
+            return state.Invalid(BlockValidationResult::BLOCK_MUTATED, "mweb-missing", "MWEB activated but extension block not found");
+        } else {
+            // Empty MWEB block - no MWEB data required
+            return true;
+        }
     }
 
     // Validate each transaction in the block.
@@ -88,7 +117,8 @@ bool Node::ContextualCheckBlock(const CBlock& block, const Consensus::Params& co
 
     // For the very first HogEx transaction, all inputs are pegins, so start at index of 0.
     // For all other HogEx transaction, the first input is not a pegin, so start looking for pegins at index 1.
-    const bool is_first_hogex = !IsMWEBEnabled(pindexPrev->pprev, consensus_params);
+    // If the HogEx transaction has 0 inputs, it's effectively the first HogEx (empty MWEB block case)
+    bool is_first_hogex = !IsMWEBEnabled(pindexPrev->pprev, consensus_params) || pHogEx->vin.empty();
     size_t next_pegin_idx = is_first_hogex ? 0 : 1;
 
     // Loop through the block's txs looking for all outputs with pegin scriptPubKeys (skip Coinbase & HogEx which don't support pegins).

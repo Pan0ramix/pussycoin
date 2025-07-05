@@ -351,7 +351,7 @@ void RandAddStaticEnv(CSHA512& hasher)
 #ifdef HAVE_GETCPUID
     // Apple Silicon compatibility: avoid CPUID instructions on ARM64
     #if defined(__x86_64__) || defined(__i386__) || defined(_M_X64) || defined(_M_IX86)
-        AddAllCPUID(hasher);
+    AddAllCPUID(hasher);
     #endif
 #endif
 

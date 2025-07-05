@@ -130,6 +130,8 @@ bool Miner::ValidatePegIns(const CTransactionRef& pTx, const std::vector<PegInCo
 
 void Miner::AddHogExTransaction(const CBlockIndex* pIndexPrev, CBlock* pblock, CBlockTemplate* pblocktemplate, CAmount& nFees)
 {
+    LogPrintf("MWEB Debug: AddHogExTransaction called, hogex_inputs.size() = %u\n", hogex_inputs.size());
+    
     CMutableTransaction hogExTransaction;
     hogExTransaction.m_hogEx = true;
 
@@ -148,12 +150,14 @@ void Miner::AddHogExTransaction(const CBlockIndex* pIndexPrev, CBlock* pblock, C
 
         CTxIn prevHogExIn(prevBlock.vtx.back()->GetHash(), 0);
         hogExTransaction.vin.push_back(std::move(prevHogExIn));
+        LogPrintf("MWEB Debug: Added previous HogEx input\n");
     }
 
     //
     // Add Peg-in inputs
     //
     hogExTransaction.vin.insert(hogExTransaction.vin.end(), hogex_inputs.cbegin(), hogex_inputs.cend());
+    LogPrintf("MWEB Debug: Added %u pegin inputs, total HogEx inputs = %u\n", hogex_inputs.size(), hogExTransaction.vin.size());
 
     //
     // Add New HogAddr

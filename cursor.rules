@@ -83,7 +83,7 @@ These values are **hard‑coded**; changing them requires an approved RFC ID:
 ```cpp
 constexpr uint64_t ATOMIC_UNITS   = 100'000'000;      // 1 PUSSY = 1e8
 constexpr uint64_t MONEY_SUPPLY   = std::numeric_limits<uint64_t>::max();
-constexpr uint64_t TAIL_REWARD    = 2'000'000;        // 0.02 PUSSY
+constexpr uint64_t TAIL_REWARD    = 2'500'000;        // 0.025 PUSSY
 constexpr int      SHIFT_CONSTANT = 25;               // 20 +1 +4
 ```
 

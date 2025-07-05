@@ -188,13 +188,17 @@ public:
 
         // Deployment of Taproot (BIPs 340-342) - Active from genesis
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].bit = 2;
+        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;
+        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nStartHeight = 0;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nTimeoutHeight = Consensus::BIP9Deployment::NO_TIMEOUT;
+        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nTimeoutHeight = 0;
 
         // Deployment of MWEB (LIP-0002, LIP-0003, and LIP-0004) - Active from genesis
         consensus.vDeployments[Consensus::DEPLOYMENT_MWEB].bit = 4;
+        consensus.vDeployments[Consensus::DEPLOYMENT_MWEB].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;
+        consensus.vDeployments[Consensus::DEPLOYMENT_MWEB].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
         consensus.vDeployments[Consensus::DEPLOYMENT_MWEB].nStartHeight = 0;
-        consensus.vDeployments[Consensus::DEPLOYMENT_MWEB].nTimeoutHeight = Consensus::BIP9Deployment::NO_TIMEOUT;
+        consensus.vDeployments[Consensus::DEPLOYMENT_MWEB].nTimeoutHeight = 0;
 
         consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000000001");
         consensus.defaultAssumeValid = uint256S("0x0000000000000000000000000000000000000000000000000000000000000000"); // Genesis
@@ -281,18 +285,22 @@ public:
         consensus.nMinerConfirmationWindow = 90; // LWMA-3 window
 
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 0;
+        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = Consensus::BIP9Deployment::NEVER_ACTIVE;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
 
         // Deployment of Taproot (BIPs 340-342) - Active from genesis
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].bit = 2;
+        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;
+        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nStartHeight = 0;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nTimeoutHeight = Consensus::BIP9Deployment::NO_TIMEOUT;
+        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nTimeoutHeight = 0;
 
         // Deployment of MWEB (LIP-0002, LIP-0003, and LIP-0004) - Active from genesis
         consensus.vDeployments[Consensus::DEPLOYMENT_MWEB].bit = 4;
+        consensus.vDeployments[Consensus::DEPLOYMENT_MWEB].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;
+        consensus.vDeployments[Consensus::DEPLOYMENT_MWEB].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
         consensus.vDeployments[Consensus::DEPLOYMENT_MWEB].nStartHeight = 0;
-        consensus.vDeployments[Consensus::DEPLOYMENT_MWEB].nTimeoutHeight = Consensus::BIP9Deployment::NO_TIMEOUT;
+        consensus.vDeployments[Consensus::DEPLOYMENT_MWEB].nTimeoutHeight = 0;
 
         consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000000001");
         consensus.defaultAssumeValid = uint256S("0x0000000000000000000000000000000000000000000000000000000000000000"); // Genesis
@@ -309,9 +317,9 @@ public:
         UpdateActivationParametersFromArgs(args);
 
         // Genesis block for Pussycoin regtest with "Rare, Irresistible, Irreversible"
-        genesis = CreateGenesisBlock(1735689602, 214233, 0x1e0ffff0, 1, 50 * COIN); // Jan 1, 2025 + 2 sec
+        genesis = CreateGenesisBlock(1735689602, 7062342, 0x1e0ffff0, 1, 50 * COIN); // Jan 1, 2025 + 2 sec
         consensus.hashGenesisBlock = genesis.GetHash();
-        assert(consensus.hashGenesisBlock == uint256S("0x000004f25225b3d1666804ba34af2e06ed078f78b5afad819535f04838fd9333"));
+        assert(consensus.hashGenesisBlock == uint256S("0x9c7ef4757c06445424e0b521829eb78e9fdba449cbc4702347d6f596ccbcfaa0"));
         assert(genesis.hashMerkleRoot == uint256S("0xbfcf87091dff36c26105a8aa8fe5bd3a487e3d48e7d7539813b0c519a64323e1"));
 
         vFixedSeeds.clear(); // No fixed seeds for regtest
@@ -324,7 +332,7 @@ public:
 
         checkpointData = {
             {
-                {0, uint256S("0x000004f25225b3d1666804ba34af2e06ed078f78b5afad819535f04838fd9333")},
+                {0, uint256S("0x9c7ef4757c06445424e0b521829eb78e9fdba449cbc4702347d6f596ccbcfaa0")},
             }
         };
 

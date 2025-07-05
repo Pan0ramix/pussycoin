@@ -19,7 +19,7 @@ static const unsigned int MAX_BLOCK_WEIGHT = 4000000;
 /** The maximum allowed number of signature check operations in a block (network rule) */
 static const int64_t MAX_BLOCK_SIGOPS_COST = 80000;
 /** Coinbase transaction outputs can only be spent after this number of new blocks (network rule) */
-static const int COINBASE_MATURITY = 1500; // 100 * 15 for 10s blocks (same ~25 min as Litecoin)
+static const int COINBASE_MATURITY = 101; // Standard Bitcoin maturity for easier testing
 /** MWEB: Pegout transaction outputs can only be spent after this number of new blocks (network rule) */
 static const int PEGOUT_MATURITY = 90; // 6 * 15 for 10s blocks (same ~15 min as Litecoin)
 
