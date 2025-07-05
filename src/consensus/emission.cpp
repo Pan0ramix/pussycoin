@@ -6,9 +6,9 @@
 #include <amount.h>
 
 // Monero emission parameters adapted for Pussycoin (Monero/2)
-static constexpr uint64_t MONEY_SUPPLY        = UINT64_MAX;     // 2^64 - 1 (same as Monero)
-static constexpr uint64_t TAIL_REWARD         = 2'000'000;      // 0.02 PUSSY per 10s block
-static constexpr int      EMISSION_SPEED_FACTOR = 21;           // 20+1 for half of Monero's supply
+static constexpr uint64_t MONEY_SUPPLY        = 922621440000000ULL; // Calculated for 9.2M PUSSY threshold
+static constexpr uint64_t TAIL_REWARD         = 2'500'000;      // 0.025 PUSSY per 10s block
+static constexpr int      EMISSION_SPEED_FACTOR = 20;           // Same as Monero
 
 uint64_t TailEmissionThreshold()
 {
@@ -25,7 +25,7 @@ CAmount GetSmoothEmissionReward(uint64_t already_generated)
     // If baseReward < tailReward, use tailReward (tail emission phase)
     
     if (already_generated >= TailEmissionThreshold()) {
-        return TAIL_REWARD;  // Tail emission: constant 0.02 PUSSY per block
+        return TAIL_REWARD;  // Tail emission: constant 0.025 PUSSY per block
     }
     
     // Main emission: smoothly decreasing reward using Monero's formula
