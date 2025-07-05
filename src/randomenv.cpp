@@ -349,7 +349,10 @@ void RandAddStaticEnv(CSHA512& hasher)
 #endif // __linux__
 
 #ifdef HAVE_GETCPUID
-    AddAllCPUID(hasher);
+    // Apple Silicon compatibility: avoid CPUID instructions on ARM64
+    #if defined(__x86_64__) || defined(__i386__) || defined(_M_X64) || defined(_M_IX86)
+        AddAllCPUID(hasher);
+    #endif
 #endif
 
     // Memory locations

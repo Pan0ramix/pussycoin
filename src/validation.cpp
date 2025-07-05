@@ -1268,11 +1268,8 @@ CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams)
 {
     // Use smooth emission for Pussycoin (10-second blocks)
     if (consensusParams.nPowTargetSpacing == 10) {
-        // Calculate total supply generated so far
-        uint64_t already_generated = 0;
-        for (int h = 1; h < nHeight; h++) {
-            already_generated += GetSmoothEmissionReward(already_generated);
-        }
+        // Efficiently calculate total supply generated so far using cached cumulative emission
+        uint64_t already_generated = GetCumulativeEmission(nHeight - 1);
         return GetSmoothEmissionReward(already_generated);
     }
 

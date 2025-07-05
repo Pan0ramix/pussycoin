@@ -25,6 +25,10 @@ struct CCheckpointData {
     MapCheckpoints mapCheckpoints;
 
     int GetHeight() const {
+        // Apple Silicon compatibility: handle empty checkpoint maps
+        if (mapCheckpoints.empty()) {
+            return 0; // No checkpoints, return genesis height
+        }
         const auto& final_checkpoint = mapCheckpoints.rbegin();
         return final_checkpoint->first /* height */;
     }

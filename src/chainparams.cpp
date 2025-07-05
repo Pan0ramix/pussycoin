@@ -114,10 +114,10 @@ public:
         m_assumed_chain_state_size = 2;
 
         // Genesis block for Pussycoin mainnet with "Rare, Irresistible, Irreversible"
-        genesis = CreateGenesisBlock(1735689600, 12311033, 0x1e0ffff0, 1, 50 * COIN); // Jan 1, 2025
+        genesis = CreateGenesisBlock(1735689600, 1618352, 0x1e0ffff0, 1, 50 * COIN); // Jan 1, 2025
         consensus.hashGenesisBlock = genesis.GetHash();
-        assert(consensus.hashGenesisBlock == uint256S("0x0000008c5a53f06f40d6544b05a2a36c01d856e2b03cef5301e055c6304911c4"));
-        assert(genesis.hashMerkleRoot == uint256S("0x98c2a065804ab99feefdee16558eb91dc82cf0a06d6bff270e558c05abf7da18"));
+        assert(consensus.hashGenesisBlock == uint256S("0x00000fef24e377f9b141708ad1383c7a3d50e1e89933a02e2404d589b2e6e36f"));
+        assert(genesis.hashMerkleRoot == uint256S("0xbfcf87091dff36c26105a8aa8fe5bd3a487e3d48e7d7539813b0c519a64323e1"));
 
         // Pussycoin DNS seeds - TODO: Replace with actual seeds
         vSeeds.emplace_back("seed1.pussycoin.org");
@@ -209,10 +209,10 @@ public:
         m_assumed_chain_state_size = 1;
 
         // Genesis block for Pussycoin testnet with "Rare, Irresistible, Irreversible"
-        genesis = CreateGenesisBlock(1735689601, 5052300, 0x1e0ffff0, 1, 50 * COIN); // Jan 1, 2025 + 1 sec
+        genesis = CreateGenesisBlock(1735689601, 5120815, 0x1e0ffff0, 1, 50 * COIN); // Jan 1, 2025 + 1 sec
         consensus.hashGenesisBlock = genesis.GetHash();
-        assert(consensus.hashGenesisBlock == uint256S("0x000000ec74903ce021325407e8b754c2e22dd2579d6422d946ac5f4c922f73de"));
-        assert(genesis.hashMerkleRoot == uint256S("0x98c2a065804ab99feefdee16558eb91dc82cf0a06d6bff270e558c05abf7da18"));
+        assert(consensus.hashGenesisBlock == uint256S("0x000001cdc28c413b6bae369270cebdac7791e50335843dd723fa6c3658b561f8"));
+        assert(genesis.hashMerkleRoot == uint256S("0xbfcf87091dff36c26105a8aa8fe5bd3a487e3d48e7d7539813b0c519a64323e1"));
 
         vFixedSeeds.clear();
         vSeeds.clear();
@@ -260,60 +260,62 @@ public:
 class CRegTestParams : public CChainParams {
 public:
     explicit CRegTestParams(const ArgsManager& args) {
-        strNetworkID =  CBaseChainParams::REGTEST;
+        strNetworkID = CBaseChainParams::REGTEST;
         consensus.signet_blocks = false;
         consensus.signet_challenge.clear();
         consensus.nSubsidyHalvingInterval = 0; // No halving for Pussycoin smooth emission
-        consensus.BIP16Height = 0;
-        consensus.BIP34Height = 1; // BIP34 activated on regtest (Used in functional tests)
-        consensus.BIP34Hash = uint256();
-        consensus.BIP65Height = 1; // BIP65 activated on regtest (Used in functional tests)
-        consensus.BIP66Height = 1; // BIP66 activated on regtest (Used in functional tests)
-        consensus.CSVHeight = 1; // CSV activated on regtest (Used in rpc activation tests)
-        consensus.SegwitHeight = 0; // SEGWIT is always activated on regtest unless overridden
+        consensus.BIP16Height = 0; // always enforce P2SH BIP16 on regtest
+        consensus.BIP34Height = 0;
+        consensus.BIP34Hash = uint256S("0x0000000000000000000000000000000000000000000000000000000000000000");
+        consensus.BIP65Height = 0;
+        consensus.BIP66Height = 0;
+        consensus.CSVHeight = 0;
+        consensus.SegwitHeight = 0;
         consensus.MinBIP9WarningHeight = 0;
         consensus.powLimit = uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         consensus.nPowTargetTimespan = 90 * 10; // 90 blocks = 15 minutes (LWMA-3 window)
-        consensus.nPowTargetSpacing = 10; // 10 seconds for Pussycoin
+        consensus.nPowTargetSpacing = 10; // 10 seconds
         consensus.fPowAllowMinDifficultyBlocks = true;
         consensus.fPowNoRetargeting = true;
         consensus.nRuleChangeActivationThreshold = 68; // 75% of 90 blocks
-        consensus.nMinerConfirmationWindow = 90; // LWMA-3 window for regtest
+        consensus.nMinerConfirmationWindow = 90; // LWMA-3 window
 
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 0;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
 
+        // Deployment of Taproot (BIPs 340-342) - Active from genesis
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].bit = 2;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
+        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nStartHeight = 0;
+        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nTimeoutHeight = Consensus::BIP9Deployment::NO_TIMEOUT;
 
-        // Deployment of MWEB (LIP-0002 and LIP-0003) - Activate at block 2 for regtest
+        // Deployment of MWEB (LIP-0002, LIP-0003, and LIP-0004) - Active from genesis
         consensus.vDeployments[Consensus::DEPLOYMENT_MWEB].bit = 4;
-        consensus.vDeployments[Consensus::DEPLOYMENT_MWEB].nStartHeight = 2;
-        consensus.vDeployments[Consensus::DEPLOYMENT_MWEB].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
+        consensus.vDeployments[Consensus::DEPLOYMENT_MWEB].nStartHeight = 0;
+        consensus.vDeployments[Consensus::DEPLOYMENT_MWEB].nTimeoutHeight = Consensus::BIP9Deployment::NO_TIMEOUT;
 
-        consensus.nMinimumChainWork = uint256{};
-        consensus.defaultAssumeValid = uint256{};
+        consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000000001");
+        consensus.defaultAssumeValid = uint256S("0x0000000000000000000000000000000000000000000000000000000000000000"); // Genesis
 
         pchMessageStart[0] = 0x52; // R
         pchMessageStart[1] = 0x50; // P
         pchMessageStart[2] = 0x55; // U
         pchMessageStart[3] = 0x53; // S
-        nDefaultPort = 19544;
+        nDefaultPort = 19445;
         nPruneAfterHeight = 1000;
         m_assumed_blockchain_size = 0;
         m_assumed_chain_state_size = 0;
 
         UpdateActivationParametersFromArgs(args);
 
-        genesis = CreateGenesisBlock(1735689602, 7062342, 0x1e0ffff0, 1, 50 * COIN);
+        // Genesis block for Pussycoin regtest with "Rare, Irresistible, Irreversible"
+        genesis = CreateGenesisBlock(1735689602, 214233, 0x1e0ffff0, 1, 50 * COIN); // Jan 1, 2025 + 2 sec
         consensus.hashGenesisBlock = genesis.GetHash();
-        assert(consensus.hashGenesisBlock == uint256S("0x0000005400171d95960c64e8760f33f15d9218f8715b48153bdbc291fa403321"));
-        assert(genesis.hashMerkleRoot == uint256S("0x98c2a065804ab99feefdee16558eb91dc82cf0a06d6bff270e558c05abf7da18"));
+        assert(consensus.hashGenesisBlock == uint256S("0x000004f25225b3d1666804ba34af2e06ed078f78b5afad819535f04838fd9333"));
+        assert(genesis.hashMerkleRoot == uint256S("0xbfcf87091dff36c26105a8aa8fe5bd3a487e3d48e7d7539813b0c519a64323e1"));
 
-        vFixedSeeds.clear(); //!< Regtest mode doesn't have any fixed seeds.
-        vSeeds.clear();      //!< Regtest mode doesn't have any DNS seeds.
+        vFixedSeeds.clear(); // No fixed seeds for regtest
+        vSeeds.clear();      // No DNS seeds for regtest
 
         fDefaultConsistencyChecks = true;
         fRequireStandard = true;
@@ -322,25 +324,25 @@ public:
 
         checkpointData = {
             {
-                {0, uint256S("0000005400171d95960c64e8760f33f15d9218f8715b48153bdbc291fa403321")},
+                {0, uint256S("0x000004f25225b3d1666804ba34af2e06ed078f78b5afad819535f04838fd9333")},
             }
         };
+
+        base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111); // regtest p prefix
+        base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196); // regtest 2 prefix
+        base58Prefixes[SCRIPT_ADDRESS2] = std::vector<unsigned char>(1,58); // regtest N prefix
+        base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,239); // regtest 9 prefix
+        base58Prefixes[EXT_PUBLIC_KEY] = {0x04, 0x35, 0x87, 0xCF}; // tpub
+        base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x35, 0x83, 0x94}; // tprv
+
+        bech32_hrp = "rpussy";
+        mweb_hrp = "rpussymweb";
 
         chainTxData = ChainTxData{
             0,
             0,
             0
         };
-
-        base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111);
-        base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196);
-        base58Prefixes[SCRIPT_ADDRESS2] = std::vector<unsigned char>(1,58);
-        base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,239);
-        base58Prefixes[EXT_PUBLIC_KEY] = {0x04, 0x35, 0x87, 0xCF};
-        base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x35, 0x83, 0x94};
-
-        bech32_hrp = "rpussy";
-        mweb_hrp = "rpussymweb";
     }
 
     /**

@@ -1,85 +1,141 @@
-Litecoin Core integration/staging tree
-=====================================
+# Pussycoin (PUSSY)
 
-[![Build Status](https://travis-ci.org/litecoin-project/litecoin.svg?branch=master)](https://travis-ci.org/litecoin-project/litecoin)
+Pussycoin is a privacy-focused cryptocurrency forked from Litecoin Core, featuring MWEB (Mimblewimble Extension Block) privacy technology, 10-second block times, and a smooth emission schedule.
 
-https://litecoin.org
+## Key Features
 
-What is Litecoin?
-----------------
+- **Fast Blocks**: 10-second block time for rapid transactions
+- **MWEB Privacy**: Built-in Mimblewimble privacy features
+- **Smooth Emission**: Monero-style smooth emission with tail emission
+- **Modern Consensus**: LWMA-3 difficulty adjustment algorithm
+- **Advanced Features**: Taproot, SegWit, and all modern Bitcoin improvements active from genesis
 
-Litecoin is an experimental digital currency that enables instant payments to
-anyone, anywhere in the world. Litecoin uses peer-to-peer technology to operate
-with no central authority: managing transactions and issuing money are carried
-out collectively by the network. Litecoin Core is the name of open source
-software which enables the use of this currency.
+## Emission Schedule
 
-For more information, as well as an immediately useable, binary version of
-the Litecoin Core software, see [https://litecoin.org](https://litecoin.org).
+Pussycoin features a smooth emission schedule inspired by Monero:
 
-License
--------
+- Pre-tail supply: ~9.2M PUSSY
+- Tail emission: 0.02 PUSSY per block (perpetual)
+- Block reward: Smoothly decreasing until tail emission
+- Block time: 10 seconds
+- Total supply: Infinite (with decreasing inflation)
 
-Litecoin Core is released under the terms of the MIT license. See [COPYING](COPYING) for more
-information or see https://opensource.org/licenses/MIT.
+## Building Pussycoin
 
-Development Process
--------------------
+### Prerequisites
 
-The `master` branch is regularly built (see `doc/build-*.md` for instructions) and tested, but it is not guaranteed to be
-completely stable. [Tags](https://github.com/litecoin-project/litecoin/tags) are created
-regularly from release branches to indicate new official, stable release versions of Litecoin Core.
+- GCC/Clang compiler (C++17 support required)
+- CMake 3.16 or newer
+- Boost 1.74.0 or newer
+- OpenSSL 1.1 or newer
+- Berkeley DB 4.8 or newer
+- ZeroMQ 4.3.1 or newer
+- Qt 5.15 or newer (for GUI)
 
-The https://github.com/litecoin-project/gui repository is used exclusively for the
-development of the GUI. Its master branch is identical in all monotree
-repositories. Release branches and tags do not exist, so please do not fork
-that repository unless it is for development reasons.
+### Build Instructions
 
-The contribution workflow is described in [CONTRIBUTING.md](CONTRIBUTING.md)
-and useful hints for developers can be found in [doc/developer-notes.md](doc/developer-notes.md).
+#### Linux/macOS
 
-The developer [mailing list](https://groups.google.com/forum/#!forum/litecoin-dev)
-should be used to discuss complicated or controversial changes before working
-on a patch set.
+```bash
+# Install dependencies (Ubuntu example)
+sudo apt-get install build-essential libtool autotools-dev automake pkg-config bsdmainutils python3
+sudo apt-get install libssl-dev libevent-dev libboost-system-dev libboost-filesystem-dev libboost-chrono-dev
+sudo apt-get install libboost-program-options-dev libboost-test-dev libboost-thread-dev
+sudo apt-get install libminiupnpc-dev libzmq3-dev
+sudo apt-get install libqt5gui5 libqt5core5a libqt5dbus5 qttools5-dev qttools5-dev-tools
+sudo apt-get install libqrencode-dev
 
-Developer IRC can be found on Freenode at #litecoin-dev.
+# Clone repository
+git clone https://github.com/pussycoin/pussycoin.git
+cd pussycoin
 
-Testing
--------
+# Build
+./autogen.sh
+./configure
+make -j$(nproc)
+```
 
-Testing and code review is the bottleneck for development; we get more pull
-requests than we can review and test on short notice. Please be patient and help out by testing
-other people's pull requests, and remember this is a security-critical project where any mistake might cost people
-lots of money.
+#### Windows (using MSVC)
 
-### Automated Testing
+1. Install Visual Studio 2019 or newer
+2. Install vcpkg and required dependencies
+3. Open `build_msvc/pussycoin.sln`
+4. Build the solution
 
-Developers are strongly encouraged to write [unit tests](src/test/README.md) for new code, and to
-submit new unit tests for old code. Unit tests can be compiled and run
-(assuming they weren't disabled in configure) with: `make check`. Further details on running
-and extending unit tests can be found in [/src/test/README.md](/src/test/README.md).
+### Running Tests
 
-There are also [regression and integration tests](/test), written
-in Python, that are run automatically on the build server.
-These tests can be run (if the [test dependencies](/test) are installed) with: `test/functional/test_runner.py`
+```bash
+# Functional tests
+python3 test/functional/test_runner.py
 
-The Travis CI system makes sure that every pull request is built for Windows, Linux, and macOS, and that unit/sanity tests are run automatically.
+# Unit tests
+src/test/test_pussycoin
 
-### Manual Quality Assurance (QA) Testing
+# Bench tests
+src/bench/bench_pussycoin
+```
 
-Changes should be tested by somebody other than the developer who wrote the
-code. This is especially important for large or high-risk changes. It is useful
-to add a test plan to the pull request description if testing the changes is
-not straightforward.
+## Using MWEB Privacy Features
 
-Translations
-------------
+MWEB (Mimblewimble Extension Block) provides optional privacy features:
 
-We only accept translation fixes that are submitted through [Bitcoin Core's Transifex page](https://www.transifex.com/projects/p/bitcoin/).
-Translations are converted to Litecoin periodically.
+### MWEB Addresses
 
-Translations are periodically pulled from Transifex and merged into the git repository. See the
-[translation process](doc/translation_process.md) for details on how this works.
+- Generate MWEB address: `pussycoin-cli getnewaddress "label" "mweb"`
+- MWEB addresses start with "pussymweb1"
 
-**Important**: We do not accept translation changes as GitHub pull requests because the next
-pull from Transifex would automatically overwrite them again.
+### MWEB Transactions
+
+1. **Peg-In (Regular → MWEB)**
+   ```bash
+   pussycoin-cli sendtoaddress "mweb_address" amount
+   ```
+
+2. **MWEB-to-MWEB Transfer**
+   ```bash
+   pussycoin-cli sendtoaddress "mweb_address" amount
+   ```
+
+3. **Peg-Out (MWEB → Regular)**
+   ```bash
+   pussycoin-cli sendtoaddress "regular_address" amount
+   ```
+
+### Privacy Best Practices
+
+- Use MWEB addresses for sensitive transactions
+- Allow time between peg-in and peg-out
+- Avoid pattern-forming transaction amounts
+- Use coin control to manage MWEB coins
+
+## API Documentation
+
+### RPC Commands
+
+#### MWEB-Specific Commands
+
+- `getmwebbalance`: Get MWEB balance
+- `listmwebtransactions`: List MWEB transactions
+- `getmwebinfo`: Get MWEB status and statistics
+
+#### Standard Commands
+
+See [Bitcoin RPC API Reference](https://developer.bitcoin.org/reference/rpc/) for common commands.
+
+### Network Ports
+
+- Mainnet: 9444 (RPC: 9445)
+- Testnet: 19444 (RPC: 19445)
+- Regtest: 19445 (RPC: 19446)
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
+
+## License
+
+Pussycoin is released under the terms of the MIT license. See [COPYING](COPYING) for more information.

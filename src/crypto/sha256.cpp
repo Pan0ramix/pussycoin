@@ -551,6 +551,10 @@ bool SelfTest() {
 /** Check whether the OS has enabled AVX registers. */
 bool AVXEnabled()
 {
+    // Apple Silicon ARM64 compatibility: no AVX available
+#if defined(__aarch64__) && defined(__APPLE__)
+    return false;
+#endif
     uint32_t a, d;
     __asm__("xgetbv" : "=a"(a), "=d"(d) : "c"(0));
     return (a & 6) == 6;
@@ -562,6 +566,13 @@ bool AVXEnabled()
 std::string SHA256AutoDetect()
 {
     std::string ret = "standard";
+    
+    // Apple Silicon ARM64 compatibility: bypass x86 feature detection entirely
+#if defined(__aarch64__) && defined(__APPLE__)
+    assert(SelfTest());
+    return "standard(apple-silicon)";
+#endif
+
 #if defined(USE_ASM) && defined(HAVE_GETCPUID)
     bool have_sse4 = false;
     bool have_xsave = false;

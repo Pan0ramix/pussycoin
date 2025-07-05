@@ -1376,3 +1376,5 @@ endif
 	 echo "};"; \
 	} > "$@.new" && mv -f "$@.new" "$@"
 	@echo "Generated $@"
+test_minimal_init_SOURCES = test_minimal_init.cpp
+test_minimal_init_LDADD = $(LIBBITCOIN_UTIL) $(LIBBITCOIN_CRYPTO_BASE) $(LIBUNIVALUE) $(LIBBITCOIN_CONSENSUS) $(BOOST_LIBS) $(BOOST_UNIT_TEST_FRAMEWORK_LIB) $(LIBSECP256K1) $(EVENT_LIBS)

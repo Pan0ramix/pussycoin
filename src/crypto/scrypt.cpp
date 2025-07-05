@@ -298,6 +298,11 @@ std::string scrypt_detect_sse2()
 #if defined(USE_SSE2_ALWAYS)
     ret = "scrypt: using scrypt-sse2 as built.";
 #else // USE_SSE2_ALWAYS
+    // On Apple Silicon ARM64, force generic implementation to avoid x86-specific code
+#if defined(__aarch64__) && defined(__APPLE__)
+    scrypt_1024_1_1_256_sp_detected = &scrypt_1024_1_1_256_sp_generic;
+    ret = "scrypt: using scrypt-generic for Apple Silicon ARM64";
+#else
     // 32bit x86 Linux or Windows, detect cpuid features
     unsigned int cpuid_edx=0;
 #if defined(_MSC_VER)
@@ -321,6 +326,7 @@ std::string scrypt_detect_sse2()
         scrypt_1024_1_1_256_sp_detected = &scrypt_1024_1_1_256_sp_generic;
         ret = "scrypt: using scrypt-generic, SSE2 unavailable";
     }
+#endif // __aarch64__ && __APPLE__
 #endif // USE_SSE2_ALWAYS
     return ret;
 }

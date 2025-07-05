@@ -14,4 +14,7 @@ uint64_t TailEmissionThreshold();
 /** Calculate block reward using smooth emission schedule */
 CAmount GetSmoothEmissionReward(uint64_t already_generated);
 
+/** Efficiently calculate total supply generated up to a given block height */
+uint64_t GetCumulativeEmission(int nHeight);
+
 #endif // PUSSYCOIN_CONSENSUS_EMISSION_H 

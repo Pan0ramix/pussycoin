@@ -87,7 +87,11 @@ static
   if (g_cpu_features != UNDEFINED) {
     return g_cpu_features;
   } else {
-#if defined(IS_X86)
+    // Apple Silicon ARM64 compatibility: bypass x86 feature detection entirely
+#if defined(__aarch64__) && defined(__APPLE__)
+    g_cpu_features = 0;  // No x86 features available
+    return 0;
+#elif defined(IS_X86)
     uint32_t regs[4] = {0};
     uint32_t *eax = &regs[0], *ebx = &regs[1], *ecx = &regs[2], *edx = &regs[3];
     (void)edx;

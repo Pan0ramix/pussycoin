@@ -82,6 +82,12 @@ static_assert(CPUID_F7_EBX_RDSEED == bit_RDSEED, "Unexpected value for bit_RDSEE
 
 static void InitHardwareRand()
 {
+    // Apple Silicon ARM64 compatibility: no x86 hardware RNG available
+#if defined(__aarch64__) && defined(__APPLE__)
+    // g_rdrand_supported and g_rdseed_supported remain false (default initialized)
+    return;
+#endif
+    
     uint32_t eax, ebx, ecx, edx;
     GetCPUID(1, 0, eax, ebx, ecx, edx);
     if (ecx & CPUID_F1_ECX_RDRAND) {

@@ -38,6 +38,15 @@ enum blake3_flags {
 #define IS_X86_32
 #endif
 
+// Apple Silicon ARM64 compatibility: disable all x86-specific implementations
+#if defined(__aarch64__) && defined(__APPLE__)
+#define BLAKE3_NO_SSE2 1
+#define BLAKE3_NO_SSE41 1
+#define BLAKE3_NO_AVX2 1
+#define BLAKE3_NO_AVX512 1
+// Don't force NEON, let it fall back to portable implementation
+#endif
+
 #if defined(IS_X86)
 #if defined(_MSC_VER)
 #include <intrin.h>
